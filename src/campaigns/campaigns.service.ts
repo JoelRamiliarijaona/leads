@@ -15,16 +15,13 @@ export class CampaignsService {
     uuid: string,
     config?: RepartitionConfig,
   ): Promise<RepartitionResult> {
-    // 1. Récupérer la campagne
     const campaign = await this.repository.findById(uuid);
     if (!campaign) {
       throw new NotFoundException(`Campaign ${uuid} not found`);
     }
 
-    // 2. Récupérer les stats
     const stats = await this.repository.getCampaignStats(uuid);
 
-    // 3. Récupérer la répartition actuelle et arrondir
     const currentRepartitionRaw =
       (campaign.lead_canal_repartition as Record<string, number>) || {};
     const currentRepartition: Record<string, number> = {};
@@ -32,17 +29,14 @@ export class CampaignsService {
       currentRepartition[key] = Math.round(currentRepartitionRaw[key] * 100) / 100;
     }
 
-    // 4. Calculer les scores
     const scores = this.repartitionService.calculateScores(stats, config);
 
-    // 5. Calculer la nouvelle répartition
     const newRepartition = this.repartitionService.calculateNewRepartition(
       stats,
       currentRepartition,
       config,
     );
 
-    // 6. Mettre à jour dans la base de données
     await this.repository.updateRepartition(uuid, newRepartition);
 
     return {
@@ -115,7 +109,6 @@ export class CampaignsService {
       throw new NotFoundException(`Campaign ${uuid} not found`);
     }
 
-    // Valider que la somme fait 100%
     const total = Object.values(repartition).reduce((sum, val) => sum + val, 0);
     if (Math.abs(total - 100) > 0.01) {
       throw new Error('La somme des pourcentages doit être égale à 100%');

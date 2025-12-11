@@ -99,7 +99,6 @@ export class CampaignsController {
     @Param('uuid') uuid: string,
     @Body() dto: UpdateLeadsDto,
   ) {
-    // Si canal et source sont fournis, mettre à jour tous les leads avec ces valeurs
     if (dto.canal && dto.source) {
       return this.campaignsService.updateLeads(uuid, {
         canal: dto.canal,
@@ -107,7 +106,6 @@ export class CampaignsController {
       });
     }
     
-    // Sinon, utiliser la méthode automatique qui alterne entre facebook et instagram
     return this.campaignsService.updateLeadsWithSources(uuid, dto.canal || 'email');
   }
 }

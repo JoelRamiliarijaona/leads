@@ -16,7 +16,6 @@ export class CampaignsRepository {
     uuid: string,
     repartition: Record<string, number>,
   ) {
-    // Calculer shoot_canal_repartition basé sur les canaux (email/SMS) dans lead_campaigns
     const canalStats = await this.prisma.lead_campaigns.groupBy({
       by: ['canal'],
       where: { campaign_uuid: uuid },
@@ -29,7 +28,6 @@ export class CampaignsRepository {
       where: { campaign_uuid: uuid },
     });
 
-    // Calculer la répartition des shoots (emails/SMS)
     const shootRepartition: Record<string, number> = {};
     if (totalLeads > 0) {
       canalStats.forEach((stat) => {
@@ -39,11 +37,9 @@ export class CampaignsRepository {
         }
       });
     } else {
-      // Si aucun lead, garder la répartition par défaut (email: 100%)
       shootRepartition['email'] = 100;
     }
 
-    // Normaliser pour que la somme fasse 100%
     const totalShoot = Object.values(shootRepartition).reduce((sum, val) => sum + val, 0);
     if (totalShoot > 0) {
       for (const canal in shootRepartition) {
@@ -51,9 +47,6 @@ export class CampaignsRepository {
       }
     }
 
-    // Calculer total_needs_lead (somme des pourcentages de lead_canal_repartition = 100, donc total_needs_lead reste à 100)
-    // Ou on peut le calculer différemment selon la logique métier
-    // Pour l'instant, on garde la valeur actuelle ou on la recalcule si nécessaire
     const currentCampaign = await this.findById(uuid);
     const totalNeedsLead = currentCampaign?.total_needs_lead || 100;
 
@@ -69,10 +62,6 @@ export class CampaignsRepository {
   }
 
   async getCampaignStats(uuid: string): Promise<Record<string, CanalStats>> {
-    // Mettre à jour les lead_campaigns qui ont canal vide ou null en leur assignant "email"
-    // Note: 'canal' dans lead_campaigns = canal de communication (email pour l'instant)
-    //       'source' dans lead_campaigns = source du lead (facebook/instagram, etc.)
-    // Utilisation d'une requête SQL brute pour gérer les cas null et chaînes vides
     await this.prisma.$executeRaw`
       UPDATE lead_campaigns 
       SET canal = 'email' 
@@ -80,19 +69,17 @@ export class CampaignsRepository {
       AND (canal IS NULL OR canal = '')
     `;
 
-    // Récupérer les stats groupées par source (Facebook/Instagram, etc.)
     const stats = await this.prisma.lead_campaigns.groupBy({
       by: ['source'],
       where: { 
         campaign_uuid: uuid,
-        source: { not: null }, // Exclure les sources null
+        source: { not: null },
       },
       _count: {
         source: true,
       },
     });
 
-    // Récupérer les ventes (succeed = true) par source
     const ventes = await this.prisma.lead_campaigns.groupBy({
       by: ['source'],
       where: {
@@ -105,7 +92,6 @@ export class CampaignsRepository {
       },
     });
 
-    // Construire le résultat
     const result: Record<string, CanalStats> = {};
 
     for (const stat of stats) {
@@ -116,7 +102,6 @@ export class CampaignsRepository {
       result[stat.source] = {
         leads: leadCount,
         ventes: venteCount,
-        // Arrondir le taux de conversion à 4 décimales (pour avoir une précision suffisante)
         conversionRate: Math.round(conversionRate * 10000) / 10000,
       };
     }
@@ -146,7 +131,6 @@ export class CampaignsRepository {
     campaignUuid: string,
     updates: { canal?: string; source?: string },
   ) {
-    // Mettre à jour tous les leads de la campagne avec les valeurs fournies
     const updateData: any = {};
     if (updates.canal !== undefined) {
       updateData.canal = updates.canal;
@@ -169,7 +153,6 @@ export class CampaignsRepository {
     campaignUuid: string,
     canal: string = 'email',
   ) {
-    // Récupérer tous les leads de la campagne
     const leads = await this.prisma.lead_campaigns.findMany({
       where: { campaign_uuid: campaignUuid },
       orderBy: { date: 'asc' },
@@ -179,12 +162,11 @@ export class CampaignsRepository {
       return { count: 0, message: 'Aucun lead trouvé pour cette campagne' };
     }
 
-    // Mettre à jour le premier lead avec facebook, le deuxième avec instagram, etc.
     const sources = ['facebook', 'instagram'];
     let updatedCount = 0;
 
     for (let i = 0; i < leads.length; i++) {
-      const source = sources[i % sources.length]; // Alterner entre facebook et instagram
+      const source = sources[i % sources.length];
       
       await this.prisma.lead_campaigns.update({
         where: { uuid: leads[i].uuid },
