@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model campaigns {
+  uuid                      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  input                     Json?
+  lead_count                Int?             @default(0)
+  lead_ordering_count       Int?             @default(0)
+  output                    Json?
+  created_at                DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?        @default(now()) @db.Timestamptz(6)
+  status                    String?          @default("draft") @db.VarChar(50)
+  config_uuid               String?          @db.Uuid
+  message_types_repartition Json?            @default("[]")
+  keywords                  Json?            @default("{}")
+  messages                  Json?            @default("{}")
+  lead_canal_repartition    Json?            @default("{}")
+  shoot_canal_repartition   Json?            @default("{}")
+  total_needs_lead          Int?             @default(0)
+  configs                   configs?         @relation(fields: [config_uuid], references: [uuid], onUpdate: NoAction)
+  lead_campaigns            lead_campaigns[]
+
+  @@index([config_uuid], map: "idx_campaign_config_uuid")
+  @@index([created_at], map: "idx_campaign_created_at")
+  @@index([input], map: "idx_campaign_input", type: Gin)
+  @@index([keywords], map: "idx_campaign_keywords", type: Gin)
+  @@index([lead_canal_repartition], map: "idx_campaign_lead_canal_repartition", type: Gin)
+  @@index([lead_count], map: "idx_campaign_lead_count")
+  @@index([lead_ordering_count], map: "idx_campaign_lead_ordering_count")
+  @@index([message_types_repartition], map: "idx_campaign_message_types_repartition", type: Gin)
+  @@index([messages], map: "idx_campaign_messages", type: Gin)
+  @@index([output], map: "idx_campaign_output", type: Gin)
+  @@index([shoot_canal_repartition], map: "idx_campaign_shoot_canal_repartition", type: Gin)
+  @@index([status], map: "idx_campaign_status")
+  @@index([total_needs_lead], map: "idx_campaign_total_needs_lead")
+  @@index([updated_at], map: "idx_campaign_updated_at")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model configs {
+  uuid                      String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  site_url                  String      @unique @db.VarChar(500)
+  data                      Json?
+  average_basket            Float?      @default(50)
+  average_sales_rate        Float?      @default(1000)
+  created_at                DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?   @default(now()) @db.Timestamptz(6)
+  goal_value                Float?      @default(0.0)
+  last_shoot                DateTime?   @db.Timestamptz(6)
+  message_types_repartition Json?       @default("{}")
+  lead_canal_repartition    Json?       @default("{}")
+  shoot_canal_repartition   Json?       @default("{}")
+  campaigns                 campaigns[]
+
+  @@index([average_basket], map: "idx_config_average_basket")
+  @@index([average_sales_rate], map: "idx_config_average_sales_rate")
+  @@index([created_at], map: "idx_config_created_at")
+  @@index([data], map: "idx_config_data", type: Gin)
+  @@index([goal_value], map: "idx_config_goal_value")
+  @@index([last_shoot], map: "idx_config_last_shoot")
+  @@index([lead_canal_repartition], map: "idx_config_lead_canal_repartition", type: Gin)
+  @@index([message_types_repartition], map: "idx_config_message_types_repartition", type: Gin)
+  @@index([shoot_canal_repartition], map: "idx_config_shoot_canal_repartition", type: Gin)
+  @@index([updated_at], map: "idx_config_updated_at")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model lead_campaigns {
+  uuid              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lead_uuid         String    @db.Uuid
+  campaign_uuid     String    @db.Uuid
+  canal             String    @db.VarChar(100)
+  mail_subject      String?   @db.VarChar(500)
+  mail_content      String?
+  sms               String?
+  order_date        DateTime? @db.Timestamptz(6)
+  source            String?   @db.VarChar(255)
+  date              DateTime? @default(now()) @db.Timestamptz(6)
+  delivered         Boolean?  @default(false)
+  message_type      String?   @db.VarChar(100)
+  coupon            String?   @db.VarChar(100)
+  coupon_expiration DateTime? @db.Timestamptz(6)
+  succeed           Boolean?  @default(false)
+  campaigns         campaigns @relation(fields: [campaign_uuid], references: [uuid], onDelete: Cascade, onUpdate: NoAction)
+  leads             leads     @relation(fields: [lead_uuid], references: [uuid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([campaign_uuid], map: "idx_lead_campaign_campaign_uuid")
+  @@index([canal], map: "idx_lead_campaign_canal")
+  @@index([lead_uuid, campaign_uuid], map: "idx_lead_campaign_composite")
+  @@index([coupon], map: "idx_lead_campaign_coupon")
+  @@index([coupon_expiration], map: "idx_lead_campaign_coupon_expiration")
+  @@index([date], map: "idx_lead_campaign_date")
+  @@index([delivered], map: "idx_lead_campaign_delivered")
+  @@index([lead_uuid], map: "idx_lead_campaign_lead_uuid")
+  @@index([message_type], map: "idx_lead_campaign_message_type")
+  @@index([order_date], map: "idx_lead_campaign_order_date")
+  @@index([source], map: "idx_lead_campaign_source")
+  @@index([succeed], map: "idx_lead_campaign_succeed")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model leads {
+  uuid             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String?          @db.VarChar
+  linkedin         String?          @db.VarChar
+  work_email       String?          @db.VarChar
+  phone            String?          @db.VarChar
+  work_phone       String?          @db.VarChar
+  linkedin_url     String?          @db.VarChar
+  x_url            String?          @db.VarChar
+  instagram_id     String?          @db.VarChar
+  facebook_profile String?          @db.VarChar
+  tiktok_id        String?          @db.VarChar
+  keywords         String[]         @db.VarChar
+  sources          String[]         @db.VarChar
+  lead_metadata    Json?
+  created_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  lead_campaigns   lead_campaigns[]
+
+  @@index([created_at], map: "idx_lead_created_at")
+  @@index([email], map: "idx_lead_email")
+  @@index([facebook_profile], map: "idx_lead_facebook_profile")
+  @@index([instagram_id], map: "idx_lead_instagram_id")
+  @@index([keywords], map: "idx_lead_keywords", type: Gin)
+  @@index([lead_metadata], map: "idx_lead_lead_metadata", type: Gin)
+  @@index([linkedin_url], map: "idx_lead_linkedin_url")
+  @@index([sources], map: "idx_lead_sources", type: Gin)
+  @@index([tiktok_id], map: "idx_lead_tiktok_id")
+  @@index([updated_at], map: "idx_lead_updated_at")
+  @@index([work_email], map: "idx_lead_work_email")
+  @@index([x_url], map: "idx_lead_x_url")
+}

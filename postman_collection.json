@@ -1,0 +1,149 @@
+{
+  "info": {
+    "name": "Lead Repartition API",
+    "description": "Collection Postman pour tester l'API de répartition des leads",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "campaign_uuid",
+      "value": "97b2daee-218f-46f6-bcf5-08bf1098023f",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "1. Lister toutes les campagnes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/campaigns?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Récupère la liste de toutes les campagnes avec pagination optionnelle"
+          }
+        },
+        {
+          "name": "2. Obtenir les stats d'une campagne",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/campaigns/{{campaign_uuid}}/stats",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "{{campaign_uuid}}", "stats"]
+            },
+            "description": "Récupère les statistiques (leads, ventes, taux de conversion) par canal pour une campagne"
+          }
+        },
+        {
+          "name": "3. Prévisualiser la répartition (sans sauvegarder)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poidsVente\": 0.7,\n  \"poidsLead\": 0.3,\n  \"tauxConversionGlobal\": 0.001,\n  \"smoothingFactor\": 0.3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/{{campaign_uuid}}/repartition/preview",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "{{campaign_uuid}}", "repartition", "preview"]
+            },
+            "description": "Calcule la nouvelle répartition sans la sauvegarder en base de données. Utile pour prévisualiser le résultat."
+          }
+        },
+        {
+          "name": "4. Calculer et mettre à jour la répartition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poidsVente\": 0.7,\n  \"poidsLead\": 0.3,\n  \"tauxConversionGlobal\": 0.001,\n  \"smoothingFactor\": 0.3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/{{campaign_uuid}}/repartition/calculate",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "{{campaign_uuid}}", "repartition", "calculate"]
+            },
+            "description": "Calcule la nouvelle répartition basée sur les performances et la sauvegarde automatiquement dans la base de données"
+          }
+        },
+        {
+          "name": "5. Mettre à jour manuellement la répartition",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repartition\": {\n    \"facebook\": 60,\n    \"instagram\": 40\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/{{campaign_uuid}}/repartition",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "{{campaign_uuid}}", "repartition"]
+            },
+            "description": "Met à jour manuellement la répartition. La somme des pourcentages doit être égale à 100%"
+          }
+        }
+      ]
+    }
+  ]
+}
+
