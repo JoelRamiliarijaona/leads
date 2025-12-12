@@ -9,6 +9,9 @@ export class CampaignsRepository {
   async findById(uuid: string) {
     return this.prisma.campaigns.findUnique({
       where: { uuid },
+      include: {
+        configs: true,
+      },
     });
   }
 

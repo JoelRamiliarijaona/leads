@@ -22,6 +22,24 @@ export class CampaignsService {
 
     const stats = await this.repository.getCampaignStats(uuid);
 
+    const configData = campaign.configs?.data as any;
+    const tauxConversionGlobalFromDb = 
+      configData?.tauxConversionGlobal || 
+      (campaign.configs?.average_sales_rate ? (1 / (campaign.configs.average_sales_rate || 1000)) : undefined);
+
+    const totalLeads = campaign.lead_count || 0;
+    const statsTotalLeads = Object.values(stats).reduce((sum, stat) => sum + (stat.leads || 0), 0);
+    const nbrDeLead = totalLeads > 0 ? totalLeads : statsTotalLeads;
+
+    const tauxConversionGlobal = config?.tauxConversionGlobal ?? tauxConversionGlobalFromDb ?? 0.001;
+
+    const finalConfig: RepartitionConfig = {
+      ...config,
+      poidsVente: config?.poidsVente ?? 1,
+      tauxConversionGlobal,
+      poidsLead: config?.poidsLead ?? tauxConversionGlobal * nbrDeLead,
+    };
+
     const currentRepartitionRaw =
       (campaign.lead_canal_repartition as Record<string, number>) || {};
     const currentRepartition: Record<string, number> = {};
@@ -29,12 +47,12 @@ export class CampaignsService {
       currentRepartition[key] = Math.round(currentRepartitionRaw[key] * 100) / 100;
     }
 
-    const scores = this.repartitionService.calculateScores(stats, config);
+    const scores = this.repartitionService.calculateScores(stats, finalConfig);
 
     const newRepartition = this.repartitionService.calculateNewRepartition(
       stats,
       currentRepartition,
-      config,
+      finalConfig,
     );
 
     await this.repository.updateRepartition(uuid, newRepartition);
@@ -57,6 +75,25 @@ export class CampaignsService {
     }
 
     const stats = await this.repository.getCampaignStats(uuid);
+
+    const configData = campaign.configs?.data as any;
+    const tauxConversionGlobalFromDb = 
+      configData?.tauxConversionGlobal || 
+      (campaign.configs?.average_sales_rate ? (1 / (campaign.configs.average_sales_rate || 1000)) : undefined);
+
+    const totalLeads = campaign.lead_count || 0;
+    const statsTotalLeads = Object.values(stats).reduce((sum, stat) => sum + (stat.leads || 0), 0);
+    const nbrDeLead = totalLeads > 0 ? totalLeads : statsTotalLeads;
+
+    const tauxConversionGlobal = config?.tauxConversionGlobal ?? tauxConversionGlobalFromDb ?? 0.001;
+
+    const finalConfig: RepartitionConfig = {
+      ...config,
+      poidsVente: config?.poidsVente ?? 1,
+      tauxConversionGlobal,
+      poidsLead: config?.poidsLead ?? tauxConversionGlobal * nbrDeLead,
+    };
+
     const currentRepartitionRaw =
       (campaign.lead_canal_repartition as Record<string, number>) || {};
     const currentRepartition: Record<string, number> = {};
@@ -64,11 +101,11 @@ export class CampaignsService {
       currentRepartition[key] = Math.round(currentRepartitionRaw[key] * 100) / 100;
     }
 
-    const scores = this.repartitionService.calculateScores(stats, config);
+    const scores = this.repartitionService.calculateScores(stats, finalConfig);
     const newRepartition = this.repartitionService.calculateNewRepartition(
       stats,
       currentRepartition,
-      config,
+      finalConfig,
     );
 
     return {
